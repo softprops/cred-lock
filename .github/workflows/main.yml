@@ -35,7 +35,7 @@ jobs:
     needs: [codestyle, lint, compile]
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macOS-latest]
+        os: [macOS-latest]
         rust: [stable, beta, nightly]
     runs-on: ${{ matrix.os }}
 
@@ -53,18 +53,8 @@ jobs:
     needs: [test]
     strategy:
       matrix:
-        os: [ubuntu-latest, macOS-latest, windows-latest]
+        os: [macOS-latest]
         include:
-          - os: ubuntu-latest
-            rust: stable
-            target: x86_64-unknown-linux-musl
-            bin: 'cred-lock'
-            name: 'cred-lock-Linux-x86_64.tar.gz'
-          - os: windows-latest
-            rust: stable
-            target: x86_64-pc-windows-msvc
-            bin: 'cred-lock.exe'
-            name: 'cred-lock-Windows-x86_64.zip'
           - os: macOS-latest
             rust: stable
             target: x86_64-apple-darwin
@@ -77,10 +67,6 @@ jobs:
       with:
         rust-version: ${{ matrix.rust }}
         targets: ${{ matrix.target }}
-    - name: Setup musl-gcc
-      if: contains(matrix.target, 'musl')
-      run: |
-        sudo apt-get install musl-tools
     - name: Checkout
       uses: actions/checkout@v1
     - name: Build
@@ -90,12 +76,7 @@ jobs:
       run: |
         strip target/${{ matrix.target }}/release/${{ matrix.bin }}
         cd target/${{ matrix.target }}/release
-        if [[ "${{ matrix.os }}" == "windows-latest" ]]
-        then
-          7z a ../../../${{ matrix.name }} ${{ matrix.bin }}
-        else
-          tar czvf ../../../${{ matrix.name }} ${{ matrix.bin }}
-        fi
+        tar czvf ../../../${{ matrix.name }} ${{ matrix.bin }}
         cd -
     - name: Publish
       uses: softprops/action-gh-release@v1
