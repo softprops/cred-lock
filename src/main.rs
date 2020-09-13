@@ -9,6 +9,8 @@ use serde::Serialize;
 use std::error::Error;
 use structopt::StructOpt;
 
+const DEFAULT_CHAIN: &str = "aws-credlock";
+
 /// Credentials Process representation of AWS credentials
 /// https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-sourcing-external.html
 #[derive(Serialize)]
@@ -56,7 +58,9 @@ struct RemoveCredentials {
 }
 
 fn init() -> Result<(), Box<dyn Error>> {
-    let mut chain = CreateOptions::new().prompt_user(true).create("aws")?;
+    let mut chain = CreateOptions::new()
+        .prompt_user(true)
+        .create(DEFAULT_CHAIN)?;
     let mut settings = KeychainSettings::new();
     settings.set_lock_on_sleep(true);
     settings.set_lock_interval(Some(300));
@@ -66,7 +70,7 @@ fn init() -> Result<(), Box<dyn Error>> {
 
 fn list() -> Result<(), Box<dyn Error>> {
     for item in ItemSearchOptions::new()
-        .keychains(&[SecKeychain::open("aws")?])
+        .keychains(&[SecKeychain::open(DEFAULT_CHAIN)?])
         .class(ItemClass::generic_password())
         .limit(100)
         .load_data(true)
@@ -88,7 +92,7 @@ fn list() -> Result<(), Box<dyn Error>> {
 
 fn get(args: Get) -> Result<(), Box<dyn Error>> {
     let Get { profile } = args;
-    let chain = SecKeychain::open("aws")?;
+    let chain = SecKeychain::open(DEFAULT_CHAIN)?;
     for item in ItemSearchOptions::new()
         .keychains(&[chain])
         .class(ItemClass::generic_password())
@@ -122,7 +126,7 @@ fn add_credentials(args: AddCredentials) -> Result<(), Box<dyn Error>> {
         .with_prompt("🔑 Enter your secret_access_key")
         .allow_empty_password(false)
         .interact()?;
-    SecKeychain::open("aws")?.add_generic_password(
+    SecKeychain::open(DEFAULT_CHAIN)?.add_generic_password(
         profile.as_str(),
         access_key_id.as_str(),
         secret_access_key.as_bytes(),
@@ -132,7 +136,7 @@ fn add_credentials(args: AddCredentials) -> Result<(), Box<dyn Error>> {
 
 fn remove_credentials(args: RemoveCredentials) -> Result<(), Box<dyn Error>> {
     let RemoveCredentials { profile } = args;
-    let chain = SecKeychain::open("aws")?;
+    let chain = SecKeychain::open(DEFAULT_CHAIN)?;
     for item in ItemSearchOptions::new()
         .keychains(&[chain])
         .class(ItemClass::generic_password())
@@ -143,7 +147,7 @@ fn remove_credentials(args: RemoveCredentials) -> Result<(), Box<dyn Error>> {
         let attributes = item.simplify_dict().unwrap_or_default();
         let access_key_id = attributes.get("acct").cloned().unwrap_or_default();
         let (_, item) =
-            SecKeychain::open("aws")?.find_generic_password(&profile, &access_key_id)?;
+            SecKeychain::open(DEFAULT_CHAIN)?.find_generic_password(&profile, &access_key_id)?;
         item.delete();
     }
     Ok(())
